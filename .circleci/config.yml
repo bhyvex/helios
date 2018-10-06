@@ -37,7 +37,7 @@ jobs:
          if [[ $(python --version 2>&1) = *"2.7.10"* ]] || pyenv versions --bare | grep -x -q '2.7.10'; then pyenv global 2.7.10;else pyenv install --skip-existing  2.7.10 && pyenv global 2.7.10 && pyenv rehash && pip install virtualenv && pip install nose && pip install pep8 && pyenv rehash;fi
 
     # Configuring Docker to accept remote connections
-    - run: ./circle.sh pre_machine
+    - run: ./circle.sh pre_machine && ./circle.sh pre_machine_docker
 
     # Restarting docker for the changes to be applied
     - run: sudo service docker restart
@@ -46,7 +46,7 @@ jobs:
 
     - run: ./circle.sh dependencies
 
-    - run: ./circle.sh test
+    - run: ./circle.sh pre_test && ./circle.sh test
 
     - run: if [ "$CIRCLE_NODE_INDEX" == "0" ]; then ./circle.sh post_test; fi
 
@@ -64,3 +64,58 @@ jobs:
         path: /var/log/upstart/docker.log
     - store_artifacts:
         path: /tmp/circleci-test-results
+
+  build_java11:
+    docker:
+      - image: dxia/bionic-openjdk11:test
+
+    working_directory: ~/spotify/helios
+    parallelism: 6
+    shell: /bin/bash --login
+    environment:
+      CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
+      CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
+      MAVEN_OPTS: -Xmx128m
+
+    steps:
+    # Machine Setup
+    #   If you break your build into multiple jobs with workflows, you will probably want to do the parts of this that are relevant in each
+    # The following `checkout` command checks out your code to your working directory. In 1.0 this is done implicitly. In 2.0 you can choose where in the course of a job your code should be checked out.
+    - checkout
+
+    - setup_remote_docker
+
+    # 'See docs on artifact collection here https://circleci.com/docs/2.0/artifacts/'
+    - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
+
+    - run: ./circle.sh pre_machine_
+
+    - run:
+        command: ./circle.sh dependencies
+        no_output_timeout: 20m
+
+    - run: ./circle.sh test
+
+    - run: if [ "$CIRCLE_NODE_INDEX" == "0" ]; then ./circle.sh post_test; fi
+
+    - run: ./circle.sh collect_test_reports
+
+    - store_test_results:
+        path: /tmp/circleci-test-results
+
+    # Save artifacts
+    - store_artifacts:
+        path: /tmp/circleci-artifacts
+    - store_artifacts:
+        path: artifacts
+    - store_artifacts:
+        path: /var/log/upstart/docker.log
+    - store_artifacts:
+        path: /tmp/circleci-test-results
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - build_java11

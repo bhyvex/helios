@@ -435,7 +435,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <autoReleaseAfterClose>true</autoReleaseAfterClose>
-        <jacoco.version>0.7.1.201405082137</jacoco.version>
+        <jacoco.version>0.8.2</jacoco.version>
         <jdeb.skip>false</jdeb.skip>
         <surefire.version>2.16</surefire.version>
         <surefireArgLine>-Xmx128m -XX:+TieredCompilation -XX:TieredStopAtLevel=1</surefireArgLine>

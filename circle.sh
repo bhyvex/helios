@@ -10,14 +10,16 @@ case "$1" in
         exit 1
     fi
 
+    # Edit pom files to have correct version syntax
+    for i in $(find . -name pom.xml -not -path './.rvm*'); do sed -i 's/${revision}/0/g' $i; done
+
+    ;;
+
+  pre_machine_docker)
     # have docker bind to localhost
     docker_opts='DOCKER_OPTS="$DOCKER_OPTS -H tcp://0.0.0.0:2375"'
     sudo sh -c "echo '$docker_opts' >> /etc/default/docker"
-
     cat /etc/default/docker
-
-    # Edit pom files to have correct version syntax
-    for i in $(find . -name pom.xml -not -path './.rvm*'); do sed -i 's/${revision}/0/g' $i; done
 
     ;;
 
@@ -33,12 +35,15 @@ case "$1" in
 
     ;;
 
-  test)
+  pre_test)
     # fix DOCKER_HOST to be accessible from within containers
     docker0_ip=$(/sbin/ifconfig docker0 | grep 'inet addr' | \
       awk -F: '{print $2}' | awk '{print $1}')
     export DOCKER_HOST="tcp://$docker0_ip:2375"
 
+    ;;
+
+  test)
     case $CIRCLE_NODE_INDEX in
       0)
         # run all tests *except* helios-system-tests
